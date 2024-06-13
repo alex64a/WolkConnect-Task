@@ -114,7 +114,13 @@ endif ()
 option(BUILD_POCO "" ${BUILD_POCO_HTTP_DOWNLOADER})
 option(POCO_BUILD_NET "" ${BUILD_POCO_HTTP_DOWNLOADER})
 option(BUILD_AWS_LOG_UPLOADER "" OFF)
+
+#subdirectory for WolkSDK
 add_subdirectory(WolkSDK-Cpp)
+#subdirectory for cpu temperature readings
+add_subdirectory(cpuTemperatureReader)
+#subdirectory for ip address reader
+add_subdirectory(ipAddressReader)
 
 # Define the version of the library
 set(WOLKCONNECT_VERSION_MAJOR 4)
@@ -241,7 +247,8 @@ if (${BUILD_TESTS})
 endif ()
 
 if (${BUILD_EXAMPLES})
-    # Full example
+    
+      # Full example
     set(FULL_EXAMPLE_SOURCE_FILES examples/full_feature/Application.cpp)
 
     add_executable(full_example ${FULL_EXAMPLE_SOURCE_FILES})
@@ -304,3 +311,10 @@ install(DIRECTORY ${CMAKE_LIBRARY_INCLUDE_DIRECTORY} DESTINATION ${CMAKE_INSTALL
 install(DIRECTORY ${CMAKE_PREFIX_PATH}/include DESTINATION ${CMAKE_INSTALL_PREFIX} PATTERN *.h)
 install(DIRECTORY ${CMAKE_PREFIX_PATH}/lib/ DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+
+
+#Aleksa task configuration
+set(TASK_SOURCE_FILES application.cpp)
+add_executable(ELab-Test ${TASK_SOURCE_FILES})
+target_link_libraries(ELab-Test WolkAboutConnector)
+target_include_directories(ELab-Test PRIVATE ${PROJECT_SOURCE_DIR})
