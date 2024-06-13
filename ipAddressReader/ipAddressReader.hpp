@@ -1,30 +1,21 @@
-#ifndef IP_ADDRESS_READER_HPP
-#define IP_ADDRESS_READER_HPP
+#ifndef IPADDRESSREADER_HPP
+#define IPADDRESSREADER_HPP
 
-
-#include <iostream>
 #include <string>
-#include <cstdlib>
-#include <cstring>
-#include <cstdio>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <netdb.h>
 
-
-class IpAddressReader {
-
+class IPAddressReader {
 public:
-    IpAddressReader();
-    ~IpAddressReader();
-    int readIp();
+    IPAddressReader();
+    std::string getHostName();
+    std::string getIPAddress();
 
+private:
+    std::string hostName;
+    std::string ipAddress;
 
-
-
-
+    void retrieveHostName();
+    void retrieveIPAddress();
 };
 
-#endif
+#endif // IPADDRESSREADER_HPP
+
