@@ -23,6 +23,7 @@ project(
 # Including header files here helps IDEs but is not required.
 # Output libname matches target name, with the usual extensions on your system
 
+include_directories(/usr/include/)
 add_library(cpuTemperatureLib cpuTemperatureReader.cpp cpuTemperatureReader.hpp)
-
+target_link_libraries(cpuTemperatureLib sensors)  
 # Link each target with other targets or add options, etc.

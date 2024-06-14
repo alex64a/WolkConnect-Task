@@ -47,7 +47,7 @@ std::vector<double> CpuTemperatureReader::readTemperatures() {
         }
     }
 
-    // Return the last four readings assuming they are the CPU core temperatures
+    // Return the last four readings they are the CPU core temperatures
     if (temperatures.size() >= 4) {
         return std::vector<double>(temperatures.end() - 4, temperatures.end());
     } else {
