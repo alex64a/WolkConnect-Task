@@ -14,12 +14,22 @@
  * limitations under the License.
  */
 
+
+#include "core/persistence/inmemory/InMemoryPersistence.h"
+#include "core/utilities/FileSystemUtils.h"
 #include "core/utilities/Logger.h"
 #include "wolk/WolkBuilder.h"
 #include "wolk/WolkSingle.h"
 #include "cpuTemperatureReader/cpuTemperatureReader.hpp"
 #include "ipAddressReader/ipAddressReader.hpp"
+
+#include <chrono>
+#include <csignal>
+#include <map>
+#include <memory>
 #include <random>
+#include <string>
+#include <utility>
 
 /**
  * This is the place where user input is required for running the example.
@@ -29,6 +39,87 @@
 const std::string DEVICE_KEY = "AM";
 const std::string DEVICE_PASSWORD = "T6RCB4VIE7";
 const std::string PLATFORM_HOST = "integration5.wolkabout.com:1883";
+const std::string CA_CERT_PATH = "/INSERT/PATH/TO/YOUR/CA.CRT/FILE";
+const std::string FILE_MANAGEMENT_LOCATION = "./files";
+
+/**
+ * This is a structure definition that is a collection of all information/feeds the device will have.
+ */
+struct DeviceData
+{
+  std::vector<double> temperatures;
+  std::string ipAddress;
+  wolkabout::LogLevel logInfo;
+  
+};
+
+std::mutex mutex;
+std::condition_variable conditionVariable;
+
+
+class DeviceDataChangeHandler : public wolkabout::connect::FeedUpdateHandler
+{
+public:
+    /**
+     * Default constructor that will establish the relationship between the handler and the data.
+     *
+     * @param deviceData The data object in which the handler will put the data.
+     */
+    explicit DeviceDataChangeHandler(DeviceData& deviceData) : m_deviceData(deviceData) {}
+
+    /**
+     * This is the overridden method from the `FeedUpdateHandler` interface.
+     * This is the method that will receive information about a feed.
+     *
+     * @param readings The map containing information about updated feeds and their new value(s).
+     */
+    void handleUpdate(const std::string& deviceKey,
+                      const std::map<std::uint64_t, std::vector<wolkabout::Reading>>& readings) override
+    {
+        // Go through all the timestamps
+        for (const auto& pair : readings)
+        {
+            // Lock the mutex
+            std::lock_guard<std::mutex> lock{mutex};
+            LOG(DEBUG) << "Received feed information for time: " << pair.first;
+
+            // Take the readings, and apply them
+            for (const auto& reading : pair.second)
+            {
+                LOG(DEBUG) << "Received feed information for reference '" << reading.getReference() << "'.";
+
+                // Check the reference on the readings
+                if (reading.getReference() == "CPU_T_core1")
+                    m_deviceData.temperatures[0] = reading.getDoubleValue();
+
+                // Check the reference on the readings
+                else if (reading.getReference() == "CPU_T_core2")
+                    m_deviceData.temperatures[1] = reading.getDoubleValue();
+
+                // Check the reference on the readings
+                else if (reading.getReference() == "CPU_T_core3")
+                    m_deviceData.temperatures[2] = reading.getDoubleValue();
+
+                // Check the reference on the readings
+                else if (reading.getReference() == "CPU_T_core4")
+                    m_deviceData.temperatures[3] = reading.getDoubleValue();
+
+                else if(reading.getReference() == "IP_ADD")
+                    m_deviceData.ipAddress == reading.getStringValue();
+
+                
+            }
+
+            // Notify the condition variable
+            conditionVariable.notify_one();
+        }
+    }
+
+private:
+    // This is where the object containing all information about the device is stored.
+    DeviceData& m_deviceData;
+};
+
 
 /**
  * This is a function that will generate a random Temperature value for us.
@@ -58,9 +149,15 @@ int main(int /* argc */, char** /* argv */)
 
     // Here we create the device that we are presenting as on the platform.
     auto device = wolkabout::Device(DEVICE_KEY, DEVICE_PASSWORD, wolkabout::OutboundDataMode::PUSH);
-
+    auto deviceInfo = DeviceData{{0.0}, "", wolkabout::LogLevel::INFO};
+    auto deviceInfoHandler = std::make_shared<DeviceDataChangeHandler>(deviceInfo);
     // And here we create the wolk session
-    auto wolk = wolkabout::connect::WolkSingle::newBuilder(device).host(PLATFORM_HOST).buildWolkSingle();
+    auto wolk = wolkabout::connect::WolkBuilder(device)
+                  .host(PLATFORM_HOST)
+                  .feedUpdateHandler(deviceInfoHandler)
+                  .buildWolkSingle();
+
+    //auto wolk = wolkabout::connect::WolkSingle::newBuilder(device).host(PLATFORM_HOST).buildWolkSingle();
     wolk->connect();
 
 
@@ -76,6 +173,8 @@ int main(int /* argc */, char** /* argv */)
         wolk->addReading("CPU_T_core4", temperatures[3]);
         //Read the IP address
         wolk->addReading("IP_ADD", ipReader.getIPAddress());
+        //LogLevel
+        wolk->addReading("LOG_LEVEL", wolkabout::LogLevel::INFO);
         //Temperature that is randomly generated
         wolk->addReading("T", generateRandomValue());
         std::this_thread::sleep_for(std::chrono::minutes(1));
