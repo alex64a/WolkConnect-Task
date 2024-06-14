@@ -12,6 +12,7 @@ IPAddressReader::IPAddressReader() {
     retrieveIPAddress();
 }
 
+
 void IPAddressReader::retrieveHostName() {
     char host[256];
     if (gethostname(host, sizeof(host)) == 0) {
