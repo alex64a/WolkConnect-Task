@@ -315,6 +315,6 @@ install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
 #Aleksa task configuration
 set(TASK_SOURCE_FILES application.cpp)
-add_executable(ELab-Test ${TASK_SOURCE_FILES})
-target_link_libraries(ELab-Test WolkAboutConnector)
-target_include_directories(ELab-Test PRIVATE ${PROJECT_SOURCE_DIR})
+add_executable(ELabTest ${TASK_SOURCE_FILES})
+target_link_libraries(ELabTest WolkAboutConnector ipAddressLib cpuTemperatureLib)
+target_include_directories(ELabTest PRIVATE ${PROJECT_SOURCE_DIR})

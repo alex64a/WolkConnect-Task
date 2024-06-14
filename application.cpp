@@ -49,7 +49,7 @@ std::uint64_t generateRandomValue()
 int main(int /* argc */, char** /* argv */)
 {
     //object of class CpuTemperatureReader for reading the core temperatures of the CPU
-    //CpuTemperatureReader temperatureReader;
+    CpuTemperatureReader temperatureReader;
 
     //object of class IPAddressReader for reading the IP address
     IPAddressReader ipReader;
@@ -69,16 +69,18 @@ int main(int /* argc */, char** /* argv */)
     while (true)
     {   
         //Read the CPU temperature values
-        // std::vector<double> temperatures = temperatureReader.readTemperatures();
-        // wolk->addReading("CPU_T_core1", temperatures[0]);
-        // wolk->addReading("CPU_T_core2", temperatures[1]);
-        // wolk->addReading("CPU_T_core3", temperatures[2]);
-        // wolk->addReading("CPU_T_core4", temperatures[3]);
-
+        std::vector<double> temperatures = temperatureReader.readTemperatures();
+        wolk->addReading("CPU_T_core1", temperatures[0]);
+        wolk->addReading("CPU_T_core2", temperatures[1]);
+        wolk->addReading("CPU_T_core3", temperatures[2]);
+        wolk->addReading("CPU_T_core4", temperatures[3]);
         //Read the IP address
         wolk->addReading("IP_ADD", ipReader.getIPAddress());
+        //Temperature that is randomly generated
+        wolk->addReading("T", generateRandomValue());
         std::this_thread::sleep_for(std::chrono::minutes(1));
         wolk->publish();
+    
     }
     return 0;
 }
