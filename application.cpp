@@ -30,6 +30,8 @@
 #include <random>
 #include <string>
 #include <utility>
+#include <vector>
+
 
 /**
  * This is the place where user input is required for running the example.
@@ -63,7 +65,7 @@ public:
     /**
      * Default constructor that will establish the relationship between the handler and the data.
      *
-     * @param deviceData The data object in which the handler will put the data.
+     * @param deviceData The data object in which  the handler will put the data.
      */
     explicit DeviceDataChangeHandler(DeviceData& deviceData) : m_deviceData(deviceData) {}
 
@@ -79,8 +81,7 @@ public:
         // Go through all the timestamps
         for (const auto& pair : readings)
         {
-            // Lock the mutex
-            std::lock_guard<std::mutex> lock{mutex};
+          
             LOG(DEBUG) << "Received feed information for time: " << pair.first;
 
             // Take the readings, and apply them
@@ -88,24 +89,10 @@ public:
             {
                 LOG(DEBUG) << "Received feed information for reference '" << reading.getReference() << "'.";
 
-                // Check the reference on the readings
-                if (reading.getReference() == "CPU_T_core1")
-                    m_deviceData.temperatures[0] = reading.getDoubleValue();
-
-                // Check the reference on the readings
-                else if (reading.getReference() == "CPU_T_core2")
-                    m_deviceData.temperatures[1] = reading.getDoubleValue();
-
-                // Check the reference on the readings
-                else if (reading.getReference() == "CPU_T_core3")
-                    m_deviceData.temperatures[2] = reading.getDoubleValue();
-
-                // Check the reference on the readings
-                else if (reading.getReference() == "CPU_T_core4")
-                    m_deviceData.temperatures[3] = reading.getDoubleValue();
-
-                else if(reading.getReference() == "IP_ADD")
-                    m_deviceData.ipAddress == reading.getStringValue();
+                // Lock the mutex
+                // std::lock_guard<std::mutex> lock{mutex};
+             
+                
 
                 
             }
@@ -119,6 +106,42 @@ private:
     // This is where the object containing all information about the device is stored.
     DeviceData& m_deviceData;
 };
+
+/**
+ * This is an example implementation of the `FileListener` interface. This class will log when a file gets
+ * added/removed.
+ */
+class applicationFileListener : public wolkabout::connect::FileListener
+{
+public:
+    /**
+     * This is an overridden method from the `FileListener` interface. This is a method that will be invoked once a file
+     * has been added.
+     *
+     * @param deviceKey The device key for the file that has been added.
+     * @param fileName The name of the file that has been added.
+     * @param absolutePath The absolute path to the file that has been added.
+     */
+    void onAddedFile(const std::string& deviceKey, const std::string& fileName,
+                     const std::string& absolutePath) override
+    {
+        LOG(INFO) << "A file has been added! -> '" << fileName << "' | '" << absolutePath << "' (on device '"
+                  << deviceKey << "').";
+    }
+
+    /**
+     * This is an overridden method from the `FileListener` interface. This is a method that will be invoked once a file
+     * has been removed.
+     *
+     * @param deviceKey The device key for the file that has been removed.
+     * @param fileName The name of the file that has been removed.
+     */
+    void onRemovedFile(const std::string& deviceKey, const std::string& fileName) override
+    {
+        LOG(INFO) << "A file has been removed! -> '" << fileName << "' (on device '" << deviceKey << "').";
+    }
+};
+
 
 
 /**
@@ -137,6 +160,33 @@ std::uint64_t generateRandomValue()
     return static_cast<std::uint64_t>(distribution(engine));
 }
 
+
+//A function to return the maximum value of all CPU core temperatures
+double publishMaximumTemperature(std::vector<double>&temperatures) {
+    
+
+    double maxValue = temperatures[0];
+    for(auto itr : temperatures)
+    {
+        if (temperatures[itr] > maxValue)
+        maxValue = temperatures[itr];
+    }
+    return maxValue;
+}
+
+
+/**
+ * This is interrupt logic used to stop the application from running.
+ */
+std::function<void(int)> sigintCall;
+
+void sigintResponse(int signal)
+{
+    if (sigintCall != nullptr)
+        sigintCall(signal);
+}
+
+
 int main(int /* argc */, char** /* argv */)
 {
     //object of class CpuTemperatureReader for reading the core temperatures of the CPU
@@ -146,35 +196,79 @@ int main(int /* argc */, char** /* argv */)
     IPAddressReader ipReader;
     // This is the logger setup. Here you can set up the level of logging you would like enabled.
     wolkabout::Logger::init(wolkabout::LogLevel::INFO, wolkabout::Logger::Type::CONSOLE);
+    //wolkabout::Logger::init(wolkabout::LogLevel::DEBUG, wolkabout::Logger::Type::FILE, "/home/amitrovcan/LogInfo/log*.txt");
+    // wolkabout::Logger::setupConsoleLogger();
+    //wolkabout::Logger::setupFileLogger("/home/amitrovcan/LogInfo/log*.txt");
 
     // Here we create the device that we are presenting as on the platform.
     auto device = wolkabout::Device(DEVICE_KEY, DEVICE_PASSWORD, wolkabout::OutboundDataMode::PUSH);
     auto deviceInfo = DeviceData{{0.0}, "", wolkabout::LogLevel::INFO};
     auto deviceInfoHandler = std::make_shared<DeviceDataChangeHandler>(deviceInfo);
+
+
     // And here we create the wolk session
     auto wolk = wolkabout::connect::WolkBuilder(device)
                   .host(PLATFORM_HOST)
                   .feedUpdateHandler(deviceInfoHandler)
+                  .withFileListener(std::make_shared<applicationFileListener>())
                   .buildWolkSingle();
+
 
     //auto wolk = wolkabout::connect::WolkSingle::newBuilder(device).host(PLATFORM_HOST).buildWolkSingle();
     wolk->connect();
+    bool running = true;
+    sigintCall = [&](int) {
+        LOG(WARN) << "Application: Received stop signal, disconnecting...";
+        conditionVariable.notify_one();
+        running = false;
+    };
 
+    wolk->obtainDetails([&](const std::vector<std::string>& feeds, const std::vector<std::string>& attributes) {
+        LOG(INFO) << "Received device details: ";
+        LOG(INFO) << "\tFeeds: ";
+        for (const auto& feed : feeds)
+            LOG(INFO) << "\t\t" << feed;
+        LOG(INFO) << "\tAttributes: ";
+        for (const auto& attribute : attributes)
+            LOG(INFO) << "\t\t" << attribute;
+    });
 
+        //Read the CPU temperature values and the IP address (initial value)
+        std::vector<double> temperatures = temperatureReader.readTemperatures();
+        std::string ip = ipReader.getIPAddress();
+        deviceInfo.temperatures = temperatures;
+        deviceInfo.ipAddress = ip;
 
     // And now we will periodically (and endlessly) send a random temperature value.
-    while (true)
+    while (running)
     {   
-        //Read the CPU temperature values
-        std::vector<double> temperatures = temperatureReader.readTemperatures();
-        wolk->addReading("CPU_T_core1", temperatures[0]);
-        wolk->addReading("CPU_T_core2", temperatures[1]);
-        wolk->addReading("CPU_T_core3", temperatures[2]);
-        wolk->addReading("CPU_T_core4", temperatures[3]);
-        //Read the IP address
-        wolk->addReading("IP_ADD", ipReader.getIPAddress());
+        std::string newIp = ipReader.getIPAddress();
+   
+    
+        wolk->addReading("CPU_T_core1", deviceInfo.temperatures[0]);
+        wolk->addReading("CPU_T_core2", deviceInfo.temperatures[1]);
+        wolk->addReading("CPU_T_core3", deviceInfo.temperatures[2]);
+        wolk->addReading("CPU_T_core4", deviceInfo.temperatures[3]);
+        // std::this_thread::sleep_for(std::chrono::minutes(1));
+        wolk->addReading("IP_ADD", deviceInfo.ipAddress);
+        wolk->addReading("CPU_T_core_max", publishMaximumTemperature(temperatures));
+      //  std::this_thread::sleep_for(std::chrono::minutes(5));
+
+
+        //Publish new IP_ADD only if it has changed 
+        if(deviceInfo.ipAddress != newIp){
+        wolk->addReading("IP_ADD", ip);
+        wolk->publish();
+        ip = newIp;
+        deviceInfo.ipAddress = ip;
+        LOG(INFO) << "\t IP_ADD changed";
+        LOG(INFO) << "NEW IP: " << ip;
+        std::this_thread::sleep_for(std::chrono::minutes(5));
+        }
+
         //LogLevel
         wolk->addReading("LOG_LEVEL", wolkabout::LogLevel::INFO);
+        wolk->addReading("LOG_LEVEL", wolkabout::LogLevel::DEBUG);
         //Temperature that is randomly generated
         wolk->addReading("T", generateRandomValue());
         std::this_thread::sleep_for(std::chrono::minutes(1));
