@@ -51,7 +51,7 @@ struct DeviceData
 {
   std::vector<double> temperatures;
   std::string ipAddress;
-  wolkabout::LogLevel logInfo;
+  std::string logInfo;
   
 };
 
@@ -162,7 +162,7 @@ std::uint64_t generateRandomValue()
 
 
 //A function to return the maximum value of all CPU core temperatures
-double publishMaximumTemperature(std::vector<double>&temperatures) {
+double publishMaximumTemperature(std::vector<double> temperatures) {
     
 
     double maxValue = temperatures[0];
@@ -172,6 +172,7 @@ double publishMaximumTemperature(std::vector<double>&temperatures) {
         maxValue = temperatures[itr];
     }
     return maxValue;
+  
 }
 
 
@@ -202,7 +203,7 @@ int main(int /* argc */, char** /* argv */)
 
     // Here we create the device that we are presenting as on the platform.
     auto device = wolkabout::Device(DEVICE_KEY, DEVICE_PASSWORD, wolkabout::OutboundDataMode::PUSH);
-    auto deviceInfo = DeviceData{{0.0}, "", wolkabout::LogLevel::INFO};
+    auto deviceInfo = DeviceData{{0.0}, "", ""};
     auto deviceInfoHandler = std::make_shared<DeviceDataChangeHandler>(deviceInfo);
 
 
@@ -231,6 +232,7 @@ int main(int /* argc */, char** /* argv */)
         LOG(INFO) << "\tAttributes: ";
         for (const auto& attribute : attributes)
             LOG(INFO) << "\t\t" << attribute;
+            
     });
 
         //Read the CPU temperature values and the IP address (initial value)
@@ -249,6 +251,8 @@ int main(int /* argc */, char** /* argv */)
         wolk->addReading("CPU_T_core2", deviceInfo.temperatures[1]);
         wolk->addReading("CPU_T_core3", deviceInfo.temperatures[2]);
         wolk->addReading("CPU_T_core4", deviceInfo.temperatures[3]);
+        wolk->addReading("CPU_T_core_max", publishMaximumTemperature(deviceInfo.temperatures));
+        LOG(INFO) << "Max CPU core temperature is" << publishMaximumTemperature(deviceInfo.temperatures);
         // std::this_thread::sleep_for(std::chrono::minutes(1));
         wolk->addReading("IP_ADD", deviceInfo.ipAddress);
         wolk->addReading("CPU_T_core_max", publishMaximumTemperature(temperatures));
@@ -263,12 +267,10 @@ int main(int /* argc */, char** /* argv */)
         deviceInfo.ipAddress = ip;
         LOG(INFO) << "\t IP_ADD changed";
         LOG(INFO) << "NEW IP: " << ip;
-        std::this_thread::sleep_for(std::chrono::minutes(5));
         }
 
         //LogLevel
-        wolk->addReading("LOG_LEVEL", wolkabout::LogLevel::INFO);
-        wolk->addReading("LOG_LEVEL", wolkabout::LogLevel::DEBUG);
+        wolk->addReading("LOG_LEVEL", deviceInfo.logInfo);
         //Temperature that is randomly generated
         wolk->addReading("T", generateRandomValue());
         std::this_thread::sleep_for(std::chrono::minutes(1));
