@@ -31,7 +31,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-
+#include <thread>
 
 /**
  * This is the place where user input is required for running the example.
@@ -91,9 +91,6 @@ public:
 
                 // Lock the mutex
                 // std::lock_guard<std::mutex> lock{mutex};
-             
-                
-
                 
             }
 
@@ -107,64 +104,9 @@ private:
     DeviceData& m_deviceData;
 };
 
-/**
- * This is an example implementation of the `FileListener` interface. This class will log when a file gets
- * added/removed.
- */
-class applicationFileListener : public wolkabout::connect::FileListener
-{
-public:
-    /**
-     * This is an overridden method from the `FileListener` interface. This is a method that will be invoked once a file
-     * has been added.
-     *
-     * @param deviceKey The device key for the file that has been added.
-     * @param fileName The name of the file that has been added.
-     * @param absolutePath The absolute path to the file that has been added.
-     */
-    void onAddedFile(const std::string& deviceKey, const std::string& fileName,
-                     const std::string& absolutePath) override
-    {
-        LOG(INFO) << "A file has been added! -> '" << fileName << "' | '" << absolutePath << "' (on device '"
-                  << deviceKey << "').";
-    }
-
-    /**
-     * This is an overridden method from the `FileListener` interface. This is a method that will be invoked once a file
-     * has been removed.
-     *
-     * @param deviceKey The device key for the file that has been removed.
-     * @param fileName The name of the file that has been removed.
-     */
-    void onRemovedFile(const std::string& deviceKey, const std::string& fileName) override
-    {
-        LOG(INFO) << "A file has been removed! -> '" << fileName << "' (on device '" << deviceKey << "').";
-    }
-};
-
-
-
-/**
- * This is a function that will generate a random Temperature value for us.
- *
- * @return A new Temperature value, in the range of -20 to 80.
- */
-std::uint64_t generateRandomValue()
-{
-    // Here we will create the random engine and distribution
-    static auto engine =
-      std::mt19937(static_cast<std::uint32_t>(std::chrono::system_clock::now().time_since_epoch().count()));
-    static auto distribution = std::uniform_real_distribution<>(-20, 80);
-
-    // And generate a random value
-    return static_cast<std::uint64_t>(distribution(engine));
-}
-
-
 //A function to return the maximum value of all CPU core temperatures
-double publishMaximumTemperature(std::vector<double> temperatures) {
+double getMaximumTemperature(std::vector<double> temperatures) {
     
-
     double maxValue = temperatures[0];
     for(auto itr : temperatures)
     {
@@ -174,19 +116,6 @@ double publishMaximumTemperature(std::vector<double> temperatures) {
     return maxValue;
   
 }
-
-
-/**
- * This is interrupt logic used to stop the application from running.
- */
-std::function<void(int)> sigintCall;
-
-void sigintResponse(int signal)
-{
-    if (sigintCall != nullptr)
-        sigintCall(signal);
-}
-
 
 int main(int /* argc */, char** /* argv */)
 {
@@ -211,71 +140,67 @@ int main(int /* argc */, char** /* argv */)
     auto wolk = wolkabout::connect::WolkBuilder(device)
                   .host(PLATFORM_HOST)
                   .feedUpdateHandler(deviceInfoHandler)
-                  .withFileListener(std::make_shared<applicationFileListener>())
                   .buildWolkSingle();
 
 
-    //auto wolk = wolkabout::connect::WolkSingle::newBuilder(device).host(PLATFORM_HOST).buildWolkSingle();
     wolk->connect();
     bool running = true;
-    sigintCall = [&](int) {
-        LOG(WARN) << "Application: Received stop signal, disconnecting...";
-        conditionVariable.notify_one();
-        running = false;
-    };
 
-    wolk->obtainDetails([&](const std::vector<std::string>& feeds, const std::vector<std::string>& attributes) {
-        LOG(INFO) << "Received device details: ";
-        LOG(INFO) << "\tFeeds: ";
-        for (const auto& feed : feeds)
-            LOG(INFO) << "\t\t" << feed;
-        LOG(INFO) << "\tAttributes: ";
-        for (const auto& attribute : attributes)
-            LOG(INFO) << "\t\t" << attribute;
-            
+    //Read the CPU temperature values and the IP address (initial value)
+    std::vector<double> temperatures = temperatureReader.readTemperatures();
+    std::string ip = ipReader.getIPAddress();
+    deviceInfo.temperatures = temperatures;
+    deviceInfo.ipAddress = ip;
+        
+    //Timers for publishing in intervals to the platform and their lambda functions
+    
+    wolkabout::Timer timerCpuMax;
+    timerCpuMax.run(std::chrono::seconds(60), [&]{
+        temperatures = temperatureReader.readTemperatures();
+        wolk->addReading("CPU_T_core_max", getMaximumTemperature(temperatures));
+        LOG(DEBUG) << "Max CPU core temperature is " << getMaximumTemperature(temperatures);
+        std::cout << "Task executed at: " << std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) << std::endl;
+        temperatures.clear();
+      
+       });
+
+    wolkabout::Timer timerCpu;
+    timerCpu.run(std::chrono::seconds(30), [&]{
+        wolk->addReading("CPU_T_core1", temperatures[0]);
+        wolk->addReading("CPU_T_core2", temperatures[1]);
+        wolk->addReading("CPU_T_core3", temperatures[2]);
+        wolk->addReading("CPU_T_core4", temperatures[3]);
+        LOG(DEBUG) << "Added temperatures";
     });
 
-        //Read the CPU temperature values and the IP address (initial value)
-        std::vector<double> temperatures = temperatureReader.readTemperatures();
-        std::string ip = ipReader.getIPAddress();
-        deviceInfo.temperatures = temperatures;
-        deviceInfo.ipAddress = ip;
+    wolkabout::Timer timerIp;
+    timerIp.run(std::chrono::seconds(30), [&]{
+        wolk->addReading("IP_ADD", ip);
+        LOG(DEBUG) << "Ip address added";
+    });
+
 
     // And now we will periodically (and endlessly) send a random temperature value.
     while (running)
     {   
         std::string newIp = ipReader.getIPAddress();
-   
-    
-        wolk->addReading("CPU_T_core1", deviceInfo.temperatures[0]);
-        wolk->addReading("CPU_T_core2", deviceInfo.temperatures[1]);
-        wolk->addReading("CPU_T_core3", deviceInfo.temperatures[2]);
-        wolk->addReading("CPU_T_core4", deviceInfo.temperatures[3]);
-        wolk->addReading("CPU_T_core_max", publishMaximumTemperature(deviceInfo.temperatures));
-        LOG(INFO) << "Max CPU core temperature is" << publishMaximumTemperature(deviceInfo.temperatures);
-        // std::this_thread::sleep_for(std::chrono::minutes(1));
-        wolk->addReading("IP_ADD", deviceInfo.ipAddress);
-        wolk->addReading("CPU_T_core_max", publishMaximumTemperature(temperatures));
-      //  std::this_thread::sleep_for(std::chrono::minutes(5));
-
+        temperatures = temperatureReader.readTemperatures();
+        
+           //LogLevel
+        wolk->addReading("LOG_LEVEL", deviceInfo.logInfo);
 
         //Publish new IP_ADD only if it has changed 
         if(deviceInfo.ipAddress != newIp){
-        wolk->addReading("IP_ADD", ip);
-        wolk->publish();
-        ip = newIp;
-        deviceInfo.ipAddress = ip;
-        LOG(INFO) << "\t IP_ADD changed";
-        LOG(INFO) << "NEW IP: " << ip;
+            wolk->addReading("IP_ADD", ip);
+            wolk->publish();
+            ip = newIp;
+            deviceInfo.ipAddress = ip;
+            LOG(INFO) << "\t IP_ADD changed";
+            LOG(INFO) << "NEW IP: " << ip;
         }
 
-        //LogLevel
-        wolk->addReading("LOG_LEVEL", deviceInfo.logInfo);
-        //Temperature that is randomly generated
-        wolk->addReading("T", generateRandomValue());
-        std::this_thread::sleep_for(std::chrono::minutes(1));
         wolk->publish();
-    
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
     return 0;
 }
