@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "core/persistence/inmemory/InMemoryPersistence.h"
 #include "core/utilities/FileSystemUtils.h"
 #include "core/utilities/Logger.h"
@@ -49,15 +48,13 @@ const std::string FILE_MANAGEMENT_LOCATION = "./files";
  */
 struct DeviceData
 {
-  std::vector<double> temperatures;
-  std::string ipAddress;
-  std::string logInfo;
-  
+    std::vector<double> temperatures;
+    std::string ipAddress;
+    std::string logInfo;
 };
 
 std::mutex mutex;
 std::condition_variable conditionVariable;
-
 
 class DeviceDataChangeHandler : public wolkabout::connect::FeedUpdateHandler
 {
@@ -81,7 +78,6 @@ public:
         // Go through all the timestamps
         for (const auto& pair : readings)
         {
-          
             LOG(DEBUG) << "Received feed information for time: " << pair.first;
 
             // Take the readings, and apply them
@@ -90,8 +86,10 @@ public:
                 LOG(DEBUG) << "Received feed information for reference '" << reading.getReference() << "'.";
 
                 // Lock the mutex
-                // std::lock_guard<std::mutex> lock{mutex};
-                
+                std::lock_guard<std::mutex> lock{mutex};
+                // Check the reference on the readings
+                if (reading.getReference() == "LOG_LEVEL")
+                    m_deviceData.logInfo = reading.getStringValue();
             }
 
             // Notify the condition variable
@@ -104,37 +102,36 @@ private:
     DeviceData& m_deviceData;
 };
 
-//A function to return the maximum value of all CPU core temperatures
-double getMaximumTemperature(std::vector<double> temperatures) {
-    
+// A function to return the maximum value of all CPU core temperatures
+double getMaximumTemperature(std::vector<double> temperatures)
+{
     double maxValue = temperatures[0];
-    for(auto itr : temperatures)
+    for (auto itr : temperatures)
     {
         if (temperatures[itr] > maxValue)
-        maxValue = temperatures[itr];
+            maxValue = temperatures[itr];
     }
     return maxValue;
-  
 }
 
 int main(int /* argc */, char** /* argv */)
 {
-    //object of class CpuTemperatureReader for reading the core temperatures of the CPU
+    // object of class CpuTemperatureReader for reading the core temperatures of the CPU
     CpuTemperatureReader temperatureReader;
 
-    //object of class IPAddressReader for reading the IP address
+    // object of class IPAddressReader for reading the IP address
     IPAddressReader ipReader;
     // This is the logger setup. Here you can set up the level of logging you would like enabled.
     wolkabout::Logger::init(wolkabout::LogLevel::INFO, wolkabout::Logger::Type::CONSOLE);
-    //wolkabout::Logger::init(wolkabout::LogLevel::DEBUG, wolkabout::Logger::Type::FILE, "/home/amitrovcan/LogInfo/log*.txt");
-    // wolkabout::Logger::setupConsoleLogger();
-    //wolkabout::Logger::setupFileLogger("/home/amitrovcan/LogInfo/log*.txt");
+    // wolkabout::Logger::init(wolkabout::LogLevel::DEBUG, wolkabout::Logger::Type::FILE,
+    // "/home/amitrovcan/LogInfo/log*.txt");
+    //  wolkabout::Logger::setupConsoleLogger();
+    // wolkabout::Logger::setupFileLogger("/home/amitrovcan/LogInfo/log*.txt");
 
     // Here we create the device that we are presenting as on the platform.
     auto device = wolkabout::Device(DEVICE_KEY, DEVICE_PASSWORD, wolkabout::OutboundDataMode::PUSH);
     auto deviceInfo = DeviceData{{0.0}, "", ""};
     auto deviceInfoHandler = std::make_shared<DeviceDataChangeHandler>(deviceInfo);
-
 
     // And here we create the wolk session
     auto wolk = wolkabout::connect::WolkBuilder(device)
@@ -142,55 +139,61 @@ int main(int /* argc */, char** /* argv */)
                   .feedUpdateHandler(deviceInfoHandler)
                   .buildWolkSingle();
 
-
     wolk->connect();
     bool running = true;
 
-    //Read the CPU temperature values and the IP address (initial value)
+    // Read the CPU temperature values and the IP address (initial value)
     std::vector<double> temperatures = temperatureReader.readTemperatures();
     std::string ip = ipReader.getIPAddress();
     deviceInfo.temperatures = temperatures;
     deviceInfo.ipAddress = ip;
-        
-    //Timers for publishing in intervals to the platform and their lambda functions
-    
+
+    // Timers for publishing in intervals to the platform and their lambda functions
+
     wolkabout::Timer timerCpuMax;
-    timerCpuMax.run(std::chrono::seconds(60), [&]{
-        temperatures = temperatureReader.readTemperatures();
-        wolk->addReading("CPU_T_core_max", getMaximumTemperature(temperatures));
-        LOG(DEBUG) << "Max CPU core temperature is " << getMaximumTemperature(temperatures);
-        std::cout << "Task executed at: " << std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) << std::endl;
-        temperatures.clear();
-      
-       });
+    timerCpuMax.run(std::chrono::seconds(60),
+                    [&]
+                    {
+                        temperatures = temperatureReader.readTemperatures();
+                        wolk->addReading("CPU_T_core_max", getMaximumTemperature(temperatures));
+                        LOG(DEBUG) << "Max CPU core temperature is " << getMaximumTemperature(temperatures);
+                        std::cout << "Task executed at: "
+                                  << std::chrono::system_clock::to_time_t(std::chrono::system_clock::now())
+                                  << std::endl;
+                        temperatures.clear();
+                    });
 
     wolkabout::Timer timerCpu;
-    timerCpu.run(std::chrono::seconds(30), [&]{
-        wolk->addReading("CPU_T_core1", temperatures[0]);
-        wolk->addReading("CPU_T_core2", temperatures[1]);
-        wolk->addReading("CPU_T_core3", temperatures[2]);
-        wolk->addReading("CPU_T_core4", temperatures[3]);
-        LOG(DEBUG) << "Added temperatures";
-    });
+    timerCpu.run(std::chrono::seconds(30),
+                 [&]
+                 {
+                     wolk->addReading("CPU_T_core1", temperatures[0]);
+                     wolk->addReading("CPU_T_core2", temperatures[1]);
+                     wolk->addReading("CPU_T_core3", temperatures[2]);
+                     wolk->addReading("CPU_T_core4", temperatures[3]);
+                     LOG(DEBUG) << "Added temperatures";
+                 });
 
     wolkabout::Timer timerIp;
-    timerIp.run(std::chrono::seconds(30), [&]{
-        wolk->addReading("IP_ADD", ip);
-        LOG(DEBUG) << "Ip address added";
-    });
-
+    timerIp.run(std::chrono::seconds(30),
+                [&]
+                {
+                    wolk->addReading("IP_ADD", ip);
+                    LOG(DEBUG) << "Ip address added";
+                });
 
     // And now we will periodically (and endlessly) send a random temperature value.
     while (running)
-    {   
+    {
         std::string newIp = ipReader.getIPAddress();
         temperatures = temperatureReader.readTemperatures();
-        
-           //LogLevel
+
+        // LogLevel
         wolk->addReading("LOG_LEVEL", deviceInfo.logInfo);
 
-        //Publish new IP_ADD only if it has changed 
-        if(deviceInfo.ipAddress != newIp){
+        // Publish new IP_ADD only if it has changed
+        if (deviceInfo.ipAddress != newIp)
+        {
             wolk->addReading("IP_ADD", ip);
             wolk->publish();
             ip = newIp;
