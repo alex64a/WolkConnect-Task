@@ -94,7 +94,6 @@ public:
                 wolkabout::Logger::init(log, wolkabout::Logger::Type::CONSOLE | wolkabout::Logger::Type::FILE,
                                         "/home/amitrovcan/LogInfo/log*.txt");
                 LOG(DEBUG) << "LogLevel changed to: " << m_deviceData.logInfo;
-                // wolkabout::Logger::setLevel(log);
             }
 
             // Notify the condition variable
@@ -130,10 +129,6 @@ int main(int /* argc */, char** /* argv */)
     wolkabout::Logger::init(wolkabout::LogLevel::DEBUG,
                             wolkabout::Logger::Type::CONSOLE | wolkabout::Logger::Type::FILE,
                             "/home/amitrovcan/LogInfo/log*.txt");
-    // wolkabout::Logger::init(wolkabout::LogLevel::DEBUG, wolkabout::Logger::Type::FILE,
-    // "/home/amitrovcan/LogInfo/log*.txt");
-    //  wolkabout::Logger::setupConsoleLogger();
-    // wolkabout::Logger::setupFileLogger("/home/amitrovcan/LogInfo/log*.txt");
 
     // Here we create the device that we are presenting as on the platform.
     auto device = wolkabout::Device(DEVICE_KEY, DEVICE_PASSWORD, wolkabout::OutboundDataMode::PUSH);
