@@ -91,7 +91,10 @@ public:
                 if (reading.getReference() == "LOG_LEVEL")
                     m_deviceData.logInfo = reading.getStringValue();
                 wolkabout::LogLevel log = wolkabout::from_string(m_deviceData.logInfo);
-                wolkabout::Logger::setLevel(log);
+                wolkabout::Logger::init(log, wolkabout::Logger::Type::CONSOLE | wolkabout::Logger::Type::FILE,
+                                        "/home/amitrovcan/LogInfo/log*.txt");
+                LOG(DEBUG) << "LogLevel changed to: " << m_deviceData.logInfo;
+                // wolkabout::Logger::setLevel(log);
             }
 
             // Notify the condition variable
@@ -124,7 +127,8 @@ int main(int /* argc */, char** /* argv */)
     // object of class IPAddressReader for reading the IP address
     IPAddressReader ipReader;
     // This is the logger setup. Here you can set up the level of logging you would like enabled.
-    wolkabout::Logger::init(wolkabout::LogLevel::DEBUG, wolkabout::Logger::Type::CONSOLE,
+    wolkabout::Logger::init(wolkabout::LogLevel::DEBUG,
+                            wolkabout::Logger::Type::CONSOLE | wolkabout::Logger::Type::FILE,
                             "/home/amitrovcan/LogInfo/log*.txt");
     // wolkabout::Logger::init(wolkabout::LogLevel::DEBUG, wolkabout::Logger::Type::FILE,
     // "/home/amitrovcan/LogInfo/log*.txt");
@@ -133,7 +137,7 @@ int main(int /* argc */, char** /* argv */)
 
     // Here we create the device that we are presenting as on the platform.
     auto device = wolkabout::Device(DEVICE_KEY, DEVICE_PASSWORD, wolkabout::OutboundDataMode::PUSH);
-    auto deviceInfo = DeviceData{{0.0}, "", "INFO"};
+    auto deviceInfo = DeviceData{{0.0}, "", "DEBUG"};
     auto deviceInfoHandler = std::make_shared<DeviceDataChangeHandler>(deviceInfo);
 
     // And here we create the wolk session
@@ -150,7 +154,6 @@ int main(int /* argc */, char** /* argv */)
     std::string ip = ipReader.getIPAddress();
     deviceInfo.temperatures = temperatures;
     deviceInfo.ipAddress = ip;
-    deviceInfo.logInfo;
 
     // Timers for publishing in intervals to the platform and their lambda functions
 
