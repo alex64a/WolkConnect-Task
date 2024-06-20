@@ -86,8 +86,7 @@ public:
                 if (reading.getReference() == "LOG_LEVEL")
                     m_deviceData.logInfo = reading.getStringValue();
                 wolkabout::LogLevel log = wolkabout::from_string(m_deviceData.logInfo);
-                wolkabout::Logger::init(log, wolkabout::Logger::Type::CONSOLE | wolkabout::Logger::Type::FILE,
-                                        "/home/amitrovcan/LogInfo/log*.txt");
+                wolkabout::Logger::getInstance().setLevel(log);
                 LOG(DEBUG) << "LogLevel changed to: " << m_deviceData.logInfo;
             }
             // Notify the condition variable
@@ -120,8 +119,7 @@ int main(int /* argc */, char** /* argv */)
     IPAddressReader ipReader;
     // This is the logger setup. Here you can set up the level of logging you would like enabled.
     wolkabout::Logger::init(wolkabout::LogLevel::DEBUG,
-                            wolkabout::Logger::Type::CONSOLE | wolkabout::Logger::Type::FILE,
-                            "/home/amitrovcan/LogInfo/log*.txt");
+                            wolkabout::Logger::Type::CONSOLE | wolkabout::Logger::Type::FILE, "./log.txt");
 
     // Here we create the device that we are presenting as on the platform.
     auto device = wolkabout::Device(DEVICE_KEY, DEVICE_PASSWORD, wolkabout::OutboundDataMode::PUSH);
