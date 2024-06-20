@@ -53,6 +53,20 @@ struct DeviceData
 std::mutex mutex;
 std::condition_variable conditionVariable;
 
+bool isValidLog(const std::string& logInfo)
+{
+    LOG(INFO) << "Received value for Log Level \"" << logInfo << "\"";
+    if (logInfo == "INFO" || logInfo == "DEBUG" || logInfo == "WARN" || logInfo == "ERROR" || logInfo == "TRACE" ||
+        logInfo == "OFF" || logInfo == "info" || logInfo == "debug" || logInfo == "warn" || logInfo == "error" ||
+        logInfo == "trace" || logInfo == "off")
+    {
+        LOG(DEBUG) << "Log Level value valid!";
+        return true;
+    }
+    LOG(INFO) << "Unsupported log entry, please enter: INFO, DEBUG, WARN, ERROR, TRACE OR OFF";
+    return false;
+}
+
 class DeviceDataChangeHandler : public wolkabout::connect::FeedUpdateHandler
 {
 public:
@@ -84,10 +98,16 @@ public:
                 std::lock_guard<std::mutex> lock{mutex};
                 // Check the reference on the readings
                 if (reading.getReference() == "LOG_LEVEL")
-                    m_deviceData.logInfo = reading.getStringValue();
-                wolkabout::LogLevel log = wolkabout::from_string(m_deviceData.logInfo);
-                wolkabout::Logger::getInstance().setLevel(log);
-                LOG(DEBUG) << "LogLevel changed to: " << m_deviceData.logInfo;
+                {
+                    if (isValidLog(reading.getStringValue()))
+                    {
+                        m_deviceData.logInfo = reading.getStringValue();
+
+                        wolkabout::LogLevel log = wolkabout::from_string(m_deviceData.logInfo);
+                        wolkabout::Logger::getInstance().setLevel(log);
+                        LOG(DEBUG) << "LogLevel changed to: " << m_deviceData.logInfo;
+                    }
+                }
             }
             // Notify the condition variable
             conditionVariable.notify_one();
