@@ -21,7 +21,6 @@
 #include "wolk/WolkSingle.h"
 #include "cpuTemperatureReader/cpuTemperatureReader.hpp"
 #include "ipAddressReader/ipAddressReader.hpp"
-
 #include <chrono>
 #include <csignal>
 #include <map>
@@ -31,7 +30,6 @@
 #include <utility>
 #include <vector>
 #include <thread>
-
 /**
  * This is the place where user input is required for running the example.
  * In here, you can enter the device credentials to successfully identify the device on the platform.
@@ -42,7 +40,6 @@ const std::string DEVICE_PASSWORD = "T6RCB4VIE7";
 const std::string PLATFORM_HOST = "integration5.wolkabout.com:1883";
 const std::string CA_CERT_PATH = "/INSERT/PATH/TO/YOUR/CA.CRT/FILE";
 const std::string FILE_MANAGEMENT_LOCATION = "./files";
-
 /**
  * This is a structure definition that is a collection of all information/feeds the device will have.
  */
@@ -79,12 +76,10 @@ public:
         for (const auto& pair : readings)
         {
             LOG(DEBUG) << "Received feed information for time: " << pair.first;
-
             // Take the readings, and apply them
             for (const auto& reading : pair.second)
             {
                 LOG(DEBUG) << "Received feed information for reference '" << reading.getReference() << "'.";
-
                 // Lock the mutex
                 std::lock_guard<std::mutex> lock{mutex};
                 // Check the reference on the readings
@@ -95,7 +90,6 @@ public:
                                         "/home/amitrovcan/LogInfo/log*.txt");
                 LOG(DEBUG) << "LogLevel changed to: " << m_deviceData.logInfo;
             }
-
             // Notify the condition variable
             conditionVariable.notify_one();
         }
@@ -122,7 +116,6 @@ int main(int /* argc */, char** /* argv */)
 {
     // object of class CpuTemperatureReader for reading the core temperatures of the CPU
     CpuTemperatureReader temperatureReader;
-
     // object of class IPAddressReader for reading the IP address
     IPAddressReader ipReader;
     // This is the logger setup. Here you can set up the level of logging you would like enabled.
@@ -140,7 +133,6 @@ int main(int /* argc */, char** /* argv */)
                   .host(PLATFORM_HOST)
                   .feedUpdateHandler(deviceInfoHandler)
                   .buildWolkSingle();
-
     wolk->connect();
     bool running = true;
 
@@ -150,8 +142,7 @@ int main(int /* argc */, char** /* argv */)
     deviceInfo.temperatures = temperatures;
     deviceInfo.ipAddress = ip;
 
-    // Timers for publishing in intervals to the platform and their lambda functions
-
+    // Timer for publishing in intervals to the platform and their lambda functions
     wolkabout::Timer timerCpuMax;
     timerCpuMax.run(std::chrono::seconds(60),
                     [&]
@@ -164,7 +155,7 @@ int main(int /* argc */, char** /* argv */)
                                   << "with value: " << getMaximumTemperature(temperatures) << std::endl;
                         temperatures.clear();
                     });
-
+    // Timer for publishing in intervals to the platform and their lambda functions
     wolkabout::Timer timerCpu;
     timerCpu.run(std::chrono::seconds(30),
                  [&]
@@ -183,7 +174,7 @@ int main(int /* argc */, char** /* argv */)
                      wolk->addReading("CPU_T_core4", temperatures[3]);
                      LOG(DEBUG) << "Published temperatures";
                  });
-
+    // Timer for publishing in intervals to the platform and their lambda functions
     wolkabout::Timer timerIp;
     timerIp.run(std::chrono::seconds(30),
                 [&]
@@ -191,15 +182,13 @@ int main(int /* argc */, char** /* argv */)
                     wolk->addReading("IP_ADD", ip);
                     LOG(DEBUG) << "Ip address published" << ip;
                 });
-    // LogLevel
+    // LogLevel reading
     wolk->addReading("LOG_LEVEL", deviceInfo.logInfo);
-
     // And now we will periodically (and endlessly) send a random temperature value.
     while (running)
     {
         std::string newIp = ipReader.getIPAddress();
         temperatures = temperatureReader.readTemperatures();
-
         // Publish new IP_ADD only if it has changed
         if (deviceInfo.ipAddress != newIp)
         {
@@ -210,7 +199,6 @@ int main(int /* argc */, char** /* argv */)
             LOG(INFO) << "\t IP_ADD changed";
             LOG(INFO) << "NEW IP: " << ip;
         }
-
         wolk->publish();
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
