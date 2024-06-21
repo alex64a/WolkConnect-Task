@@ -38,6 +38,13 @@ Deploying Task Create a Git Repository on your personal account that will use th
 WolkAbout C++11 Connector library for connecting devices to WolkAbout IoT platform instance
 .
 
+# Wolkabout Device Feed
+![Screenshot from 2024-06-21 10-36-47](https://github.com/alex64a/WolkConnect-Task/assets/50616697/d61b69b3-0531-4210-9568-b67a65b994e5)
+
+# Wolkabout dashboard
+![Screenshot from 2024-06-21 10-34-20](https://github.com/alex64a/WolkConnect-Task/assets/50616697/24714f00-4cb9-48aa-85e1-7df73902420f)
+
+
 Supported protocol:
 
 - Wolkabout Protocol/Digital Twin (22.GA)
