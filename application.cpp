@@ -30,14 +30,30 @@
 #include <utility>
 #include <vector>
 #include <thread>
+
+/**
+ * timers and log level initialization
+ * Change the @param LOG_LEVEL to info, warn, error, trace or off
+ * Change the @param LOG_TYPE to CONSOLE, FILE or BUFFER
+ * Change the @oaram FILE_PATH to the path where you want to save the log file
+ */
+
+const wolkabout::LogLevel LOG_LEVEL = wolkabout::LogLevel::DEBUG;
+const std::string LOG_LEVEL_STRING = "DEBUG";
+const wolkabout::Logger::Type LOG_TYPE = wolkabout::Logger::Type::CONSOLE | wolkabout::Logger::Type::FILE;
+const std::string FILE_PATH = "/log.txt";
+const int CPU_TIMER = 30;
+const int CPU_TIMER_MAX = 60;
+const int IP_TIMER = 30;
+
 /**
  * This is the place where user input is required for running the example.
  * In here, you can enter the device credentials to successfully identify the device on the platform.
  * And also, the target platform path.
  */
-const std::string DEVICE_KEY = "AM";
-const std::string DEVICE_PASSWORD = "T6RCB4VIE7";
-const std::string PLATFORM_HOST = "integration5.wolkabout.com:1883";
+const std::string DEVICE_KEY = "<DEVICE_KEY>";
+const std::string DEVICE_PASSWORD = "<DEVICE_PASSWORD>";
+const std::string PLATFORM_HOST = "ssl://INSERT_HOSTNAME:PORT";
 const std::string CA_CERT_PATH = "/INSERT/PATH/TO/YOUR/CA.CRT/FILE";
 const std::string FILE_MANAGEMENT_LOCATION = "./files";
 /**
@@ -138,12 +154,16 @@ int main(int /* argc */, char** /* argv */)
     // object of class IPAddressReader for reading the IP address
     IPAddressReader ipReader;
     // This is the logger setup. Here you can set up the level of logging you would like enabled.
-    wolkabout::Logger::init(wolkabout::LogLevel::DEBUG,
-                            wolkabout::Logger::Type::CONSOLE | wolkabout::Logger::Type::FILE, "./log.txt");
+    // TODO ask Lazar to pass string as wolkabout::LogLevel::LOG_LEVEL defined as macro
+    wolkabout::Logger::init(LOG_LEVEL, LOG_TYPE, FILE_PATH);
 
     // Here we create the device that we are presenting as on the platform.
     auto device = wolkabout::Device(DEVICE_KEY, DEVICE_PASSWORD, wolkabout::OutboundDataMode::PUSH);
-    auto deviceInfo = DeviceData{{0.0}, "", "DEBUG"};
+    auto deviceInfo = DeviceData{
+      {0.0},
+      LOG_LEVEL_STRING,
+    };
+    deviceInfo.logInfo = LOG_LEVEL_STRING;
     auto deviceInfoHandler = std::make_shared<DeviceDataChangeHandler>(deviceInfo);
 
     // And here we create the wolk session
@@ -154,28 +174,29 @@ int main(int /* argc */, char** /* argv */)
     wolk->connect();
     bool running = true;
 
-    // Read the CPU temperature values and the IP address (initial value)
-    std::vector<double> temperatures = temperatureReader.readTemperatures();
+    std::vector<double> temperatures;
+    std::vector<double> temperaturesMax;
     std::string ip = ipReader.getIPAddress();
     deviceInfo.temperatures = temperatures;
     deviceInfo.ipAddress = ip;
 
     // Timer for publishing in intervals to the platform and their lambda functions
     wolkabout::Timer timerCpuMax;
-    timerCpuMax.run(std::chrono::seconds(60),
+    // Publish the maximum value within a x given timeframe
+    timerCpuMax.run(std::chrono::seconds(CPU_TIMER_MAX),
                     [&]
                     {
-                        temperatures = temperatureReader.readTemperatures();
-                        wolk->addReading("CPU_T_core_max", getMaximumTemperature(temperatures));
-                        LOG(DEBUG) << "Max CPU core temperature is " << getMaximumTemperature(temperatures);
+                        wolk->addReading("CPU_T_core_max", getMaximumTemperature(temperaturesMax));
+                        wolk->publish();
+                        LOG(DEBUG) << "Max CPU core temperature is " << getMaximumTemperature(temperaturesMax);
                         std::cout << "Sending max temperature value at time: "
                                   << std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) << std::endl
-                                  << "with value: " << getMaximumTemperature(temperatures) << std::endl;
-                        temperatures.clear();
+                                  << "with value: " << getMaximumTemperature(temperaturesMax) << std::endl;
+                        temperaturesMax.clear();
                     });
     // Timer for publishing in intervals to the platform and their lambda functions
     wolkabout::Timer timerCpu;
-    timerCpu.run(std::chrono::seconds(30),
+    timerCpu.run(std::chrono::seconds(CPU_TIMER),
                  [&]
                  {
                      std::cout << "Sending temperature values at time: "
@@ -194,7 +215,7 @@ int main(int /* argc */, char** /* argv */)
                  });
     // Timer for publishing in intervals to the platform and their lambda functions
     wolkabout::Timer timerIp;
-    timerIp.run(std::chrono::seconds(30),
+    timerIp.run(std::chrono::seconds(IP_TIMER),
                 [&]
                 {
                     wolk->addReading("IP_ADD", ip);
@@ -207,6 +228,9 @@ int main(int /* argc */, char** /* argv */)
     {
         std::string newIp = ipReader.getIPAddress();
         temperatures = temperatureReader.readTemperatures();
+        // Add to the temperaturesMax vector only the maximum reading of the core
+        temperaturesMax.push_back(getMaximumTemperature(temperatures));
+
         // Publish new IP_ADD only if it has changed
         if (deviceInfo.ipAddress != newIp)
         {
