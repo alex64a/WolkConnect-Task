@@ -51,9 +51,9 @@ const int IP_TIMER = 30;
  * In here, you can enter the device credentials to successfully identify the device on the platform.
  * And also, the target platform path.
  */
-const std::string DEVICE_KEY = "AM";
-const std::string DEVICE_PASSWORD = "T6RCB4VIE7";
-const std::string PLATFORM_HOST = "integration5.wolkabout.com:1883";
+const std::string DEVICE_KEY = "<DEVICE_KEY>";
+const std::string DEVICE_PASSWORD = "<DEVICE_PASSWORD>";
+const std::string PLATFORM_HOST = "ssl://INSERT_HOSTNAME:PORT";
 const std::string CA_CERT_PATH = "/INSERT/PATH/TO/YOUR/CA.CRT/FILE";
 const std::string FILE_MANAGEMENT_LOCATION = "./files";
 /**
