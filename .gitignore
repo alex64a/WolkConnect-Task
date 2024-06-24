@@ -1,5 +1,7 @@
 # Build dir
 out
+#tmp folder to copy executable from docker container
+tmp
 dependencies
 docs/
 cmake-build-debug
