@@ -3,19 +3,16 @@
 
 #include <string>
 
-class IPAddressReader {
+class IPAddressReader
+{
 public:
     IPAddressReader();
-    std::string getHostName();
-    std::string getIPAddress();
+    std::string retrieveHostName();
+    std::string retrieveIPAddress();
 
 private:
     std::string hostName;
     std::string ipAddress;
-
-    void retrieveHostName();
-    void retrieveIPAddress();
 };
 
-#endif // IPADDRESSREADER_HPP
-
+#endif    // IPADDRESSREADER_HPP

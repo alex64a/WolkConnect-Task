@@ -176,7 +176,7 @@ int main(int /* argc */, char** /* argv */)
 
     std::vector<double> temperatures;
     std::vector<double> temperaturesMax;
-    std::string ip = ipReader.getIPAddress();
+    std::string ip = ipReader.retrieveIPAddress();
     deviceInfo.temperatures = temperatures;
     deviceInfo.ipAddress = ip;
 
@@ -226,7 +226,7 @@ int main(int /* argc */, char** /* argv */)
     // And now we will periodically (and endlessly) send a random temperature value.
     while (running)
     {
-        std::string newIp = ipReader.getIPAddress();
+        std::string newIp = ipReader.retrieveIPAddress();
         temperatures = temperatureReader.readTemperatures();
         // Add to the temperaturesMax vector only the maximum reading of the core
         temperaturesMax.push_back(getMaximumTemperature(temperatures));
