@@ -5,6 +5,7 @@
 
 /**
  * @brief Gets the ip address and hostname of local machine
+ * @returns std::string that consists of ip address
  */
 namespace IPAddressReader
 {

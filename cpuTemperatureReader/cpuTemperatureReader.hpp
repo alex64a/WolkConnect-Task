@@ -4,7 +4,10 @@
 #include <iostream>
 #include <vector>
 #include <sensors/sensors.h>
-
+/**
+ * @brief Gets the temperature of cpu cores of local machine
+ * @return std::vector<double> of temperature of cores (4 cores)
+ */
 namespace CpuTemperatureReader
 {
 
