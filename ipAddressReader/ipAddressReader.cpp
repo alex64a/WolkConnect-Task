@@ -7,10 +7,12 @@
 #include <unistd.h>
 #include <netdb.h>
 
-IPAddressReader::IPAddressReader() {}
-
-std::string IPAddressReader::retrieveHostName()
+namespace IPAddressReader
 {
+
+std::string retrieveHostName()
+{
+    std::string hostName;
     char host[256];
     if (gethostname(host, sizeof(host)) == 0)
     {
@@ -22,10 +24,12 @@ std::string IPAddressReader::retrieveHostName()
     }
 
     return hostName;
-}
+}    // namespace std::string
 
-std::string IPAddressReader::retrieveIPAddress()
+std::string retrieveIPAddress()
 {
+    std::string ipAddress;
+    std::string hostName = retrieveHostName();
     if (hostName != "Unknown")
     {
         struct hostent* hostinfo;
@@ -45,3 +49,4 @@ std::string IPAddressReader::retrieveIPAddress()
 
     return ipAddress;
 }
+}    // namespace IPAddressReader

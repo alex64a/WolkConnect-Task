@@ -3,16 +3,15 @@
 
 #include <string>
 
-class IPAddressReader
+/**
+ * @brief Gets the ip address and hostname of local machine
+ */
+namespace IPAddressReader
 {
-public:
-    IPAddressReader();
-    std::string retrieveHostName();
-    std::string retrieveIPAddress();
 
-private:
-    std::string hostName;
-    std::string ipAddress;
-};
+std::string retrieveHostName();
+std::string retrieveIPAddress();
+
+}    // namespace IPAddressReader
 
 #endif    // IPADDRESSREADER_HPP
