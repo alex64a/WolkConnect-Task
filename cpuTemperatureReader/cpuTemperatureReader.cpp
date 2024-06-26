@@ -1,45 +1,33 @@
 #include "cpuTemperatureReader.hpp"
-
-CpuTemperatureReader::CpuTemperatureReader() {
-    initializeSensors();
-}
-
-CpuTemperatureReader::~CpuTemperatureReader() {
-    cleanupSensors();
-}
-
-void CpuTemperatureReader::initializeSensors() {
-    // Initialize the sensors library
-    if (sensors_init(NULL) != 0) {
-        std::cerr << "Failed to initialize sensors library" << std::endl;
-        exit(1);
-    }
-}
-
-void CpuTemperatureReader::cleanupSensors() {
-    sensors_cleanup();
-}
-
-std::vector<double> CpuTemperatureReader::readTemperatures() {
+namespace CpuTemperatureReader
+{
+std::vector<double> readTemperatures()
+{
     std::vector<double> temperatures;
-
     // Get the list of detected sensor chips
-    const sensors_chip_name *chip;
+    const sensors_chip_name* chip;
     int chip_nr = 0;
-    while ((chip = sensors_get_detected_chips(NULL, &chip_nr)) != NULL) {
+    while ((chip = sensors_get_detected_chips(NULL, &chip_nr)) != NULL)
+    {
         // Get the list of features for this chip
-        const sensors_feature *feature;
+        const sensors_feature* feature;
         int feature_nr = 0;
-        while ((feature = sensors_get_features(chip, &feature_nr)) != NULL) {
+        while ((feature = sensors_get_features(chip, &feature_nr)) != NULL)
+        {
             // Get the list of sub-features (temperature readings, etc.) for this feature
-            const sensors_subfeature *subfeature;
+            const sensors_subfeature* subfeature;
             int subfeature_nr = 0;
-            while ((subfeature = sensors_get_all_subfeatures(chip, feature, &subfeature_nr)) != NULL) {
-                if (subfeature->type == SENSORS_SUBFEATURE_TEMP_INPUT) {
+            while ((subfeature = sensors_get_all_subfeatures(chip, feature, &subfeature_nr)) != NULL)
+            {
+                if (subfeature->type == SENSORS_SUBFEATURE_TEMP_INPUT)
+                {
                     double temp;
-                    if (sensors_get_value(chip, subfeature->number, &temp) == 0) {
+                    if (sensors_get_value(chip, subfeature->number, &temp) == 0)
+                    {
                         temperatures.push_back(temp);
-                    } else {
+                    }
+                    else
+                    {
                         std::cerr << "Failed to read temperature" << std::endl;
                     }
                 }
@@ -48,11 +36,14 @@ std::vector<double> CpuTemperatureReader::readTemperatures() {
     }
 
     // Return the last four readings they are the CPU core temperatures
-    if (temperatures.size() >= 4) {
+    if (temperatures.size() >= 4)
+    {
         return std::vector<double>(temperatures.end() - 4, temperatures.end());
-    } else {
+    }
+    else
+    {
         std::cerr << "Not enough temperature readings found" << std::endl;
         return {};
     }
 }
-
+}    // namespace CpuTemperatureReader

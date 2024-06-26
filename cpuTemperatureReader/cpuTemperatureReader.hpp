@@ -5,16 +5,12 @@
 #include <vector>
 #include <sensors/sensors.h>
 
-class CpuTemperatureReader {
-public:
-    CpuTemperatureReader();
-    ~CpuTemperatureReader();
-    std::vector<double> readTemperatures();
+namespace CpuTemperatureReader
+{
 
-private:
-    void initializeSensors();
-    void cleanupSensors();
-};
+std::vector<double> readTemperatures();
+void initializeSensors();
+void cleanupSensors();
+}    // namespace CpuTemperatureReader
 
-#endif // CPU_TEMPERATURE_READER_H
-
+#endif    // CPU_TEMPERATURE_READER_H
