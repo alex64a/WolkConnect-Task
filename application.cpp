@@ -149,10 +149,6 @@ double getMaximumTemperature(std::vector<double> temperatures)
 
 int main(int /* argc */, char** /* argv */)
 {
-    // object of class CpuTemperatureReader for reading the core temperatures of the CPU
-    CpuTemperatureReader temperatureReader;
-    // object of class IPAddressReader for reading the IP address
-    IPAddressReader ipReader;
     // This is the logger setup. Here you can set up the level of logging you would like enabled.
     // TODO ask Lazar to pass string as wolkabout::LogLevel::LOG_LEVEL defined as macro
     wolkabout::Logger::init(LOG_LEVEL, LOG_TYPE, FILE_PATH);
@@ -161,6 +157,7 @@ int main(int /* argc */, char** /* argv */)
     auto device = wolkabout::Device(DEVICE_KEY, DEVICE_PASSWORD, wolkabout::OutboundDataMode::PUSH);
     auto deviceInfo = DeviceData{
       {0.0},
+      "",
       LOG_LEVEL_STRING,
     };
     deviceInfo.logInfo = LOG_LEVEL_STRING;
@@ -176,7 +173,7 @@ int main(int /* argc */, char** /* argv */)
 
     std::vector<double> temperatures;
     std::vector<double> temperaturesMax;
-    std::string ip = ipReader.retrieveIPAddress();
+    std::string ip = IPAddressReader::retrieveIPAddress();
     deviceInfo.temperatures = temperatures;
     deviceInfo.ipAddress = ip;
 
@@ -226,8 +223,8 @@ int main(int /* argc */, char** /* argv */)
     // And now we will periodically (and endlessly) send a random temperature value.
     while (running)
     {
-        std::string newIp = ipReader.retrieveIPAddress();
-        temperatures = temperatureReader.readTemperatures();
+        std::string newIp = IPAddressReader::retrieveIPAddress();
+        temperatures = CpuTemperatureReader::readTemperatures();
         // Add to the temperaturesMax vector only the maximum reading of the core
         temperaturesMax.push_back(getMaximumTemperature(temperatures));
 
