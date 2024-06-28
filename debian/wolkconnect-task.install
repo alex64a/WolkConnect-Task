@@ -1,0 +1,3 @@
+out/build/lib/* 											/opt/wolkconnect-task/lib/
+out/lib/*   												/opt/wolkconnect-task/lib/
+out/bin/ELabTest             								/opt/wolkconnect-task/bin/

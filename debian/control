@@ -1,12 +1,13 @@
-Source: wolkconnect-cpp
+Source: wolkconnect-task
 Section: main
 Priority: optional
-Maintainer: Wolkabout ELab <elab@wolkabout.com>
+Maintainer: alex64a <aleksamitrovcan@gmail.com>
 Build-Depends: debhelper (>= 9)
 Standards-Version: 4.1.2
 
-Package: wolkconnect-cpp
+Package: wolkconnect-task
 Architecture: any
 Section: main
 Depends: ${shlibs:Depends}, ${misc:Depends}, libssl1.0.0 | libssl1.1
-Description: WolkAbout C++11 Connector library for connecting devices to WolkAbout IoT Platform.
+Description: WolkAbout C++11 Application to send data to the WolkAbout platform (cpu core temperatures, IP address and log level details). DEVICE NAME Elab-Test, DEVICE KEY AM. 
+
