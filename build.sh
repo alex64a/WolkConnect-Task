@@ -13,6 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 docker container rm alex64a
 #remove tmp if it exists and create it again
 rm -rf tmp/
@@ -23,6 +24,9 @@ docker build -t mydocker .
 #run docker container
 docker run -dit --name alex64a --cpus $(nproc) mydocker
 
-#copy the executable from docker to the tmp/ folder
-docker cp alex64a:/out/bin/ELabTest tmp/
+#copy the debian from docker to the tmp/ folder
+docker cp alex64a:/WolkConnect-Task/product/wolkconnect-task_1.0-1_amd64.deb tmp/
+
+
+
 
