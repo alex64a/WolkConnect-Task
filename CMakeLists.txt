@@ -34,6 +34,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}     -Wall -Wextra -pedantic             
                                             -Wvariadic-macros                                                          \
                                             -Wwrite-strings")
 
+
+# Typically you don't care so much for a third party library's tests to be
+# run from your own project's code.
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+          
 # Setup the options for tests
 OPTION(BUILD_GTEST "Build the library with gtest" ON)
 OPTION(BUILD_TESTS "Build the unit tests for the library" ON)
@@ -82,6 +87,7 @@ include_directories(SYSTEM ${CMAKE_PREFIX_PATH}/include)
 # Usually we just need PThreads
 find_package(Threads REQUIRED)
 
+
 # But if we want the apt/systemd firmware updater, we need GLib
 if (${BUILD_APT_SYSTEMD_FIRMWARE_UPDATER})
     find_package(PkgConfig REQUIRED)
@@ -117,6 +123,8 @@ option(BUILD_AWS_LOG_UPLOADER "" OFF)
 
 #subdirectory for WolkSDK
 add_subdirectory(WolkSDK-Cpp)
+#subdirectory for JSON 
+add_subdirectory(nlohmann_json)
 #subdirectory for cpu temperature readings
 add_subdirectory(cpuTemperatureReader)
 #subdirectory for ip address reader
@@ -316,5 +324,5 @@ install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 #Aleksa task configuration
 set(TASK_SOURCE_FILES application.cpp)
 add_executable(ELabTest ${TASK_SOURCE_FILES})
-target_link_libraries(ELabTest WolkAboutConnector ipAddressLib cpuTemperatureLib)
+target_link_libraries(ELabTest WolkAboutConnector ipAddressLib cpuTemperatureLib nlohmann_json::nlohmann_json) 
 target_include_directories(ELabTest PRIVATE ${PROJECT_SOURCE_DIR})
