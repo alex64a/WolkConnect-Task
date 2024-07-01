@@ -21,6 +21,8 @@
 #include "wolk/WolkSingle.h"
 #include "cpuTemperatureReader/cpuTemperatureReader.hpp"
 #include "ipAddressReader/ipAddressReader.hpp"
+#include "nlohmann_json/single_include/nlohmann/json.hpp"
+#include <fstream>
 #include <chrono>
 #include <csignal>
 #include <map>
@@ -51,11 +53,17 @@ const int IP_TIMER = 30;
  * In here, you can enter the device credentials to successfully identify the device on the platform.
  * And also, the target platform path.
  */
-const std::string DEVICE_KEY = "<DEVICE_KEY>";
-const std::string DEVICE_PASSWORD = "<DEVICE_PASSWORD>";
-const std::string PLATFORM_HOST = "ssl://INSERT_HOSTNAME:PORT";
-const std::string CA_CERT_PATH = "/INSERT/PATH/TO/YOUR/CA.CRT/FILE";
-const std::string FILE_MANAGEMENT_LOCATION = "./files";
+std::string DEVICE_KEY = "";
+std::string DEVICE_PASSWORD = "";
+std::string PLATFORM_HOST = "";
+std::string CA_CERT_PATH = "";
+std::string FILE_MANAGEMENT_LOCATION = "";
+
+/**This is a string variable to store the path of the json file
+ * that is parsed as a command line argument from the user
+ */
+std::string pathToJsonFile = "";
+
 /**
  * This is a structure definition that is a collection of all information/feeds the device will have.
  */
@@ -81,6 +89,25 @@ bool isValidLog(const std::string& logInfo)
     }
     LOG(INFO) << "Unsupported log entry, please enter: INFO, DEBUG, WARN, ERROR, TRACE OR OFF";
     return false;
+}
+
+bool isValidJson(const nlohmann::json& jsonData)
+{
+    const std::string requiredKeys[] = {"DEVICE_KEY", "DEVICE_PASSWORD", "PLATFORM_HOST", "CA_CERT_PATH",
+                                        "FILE_MANAGEMENT_LOCATION"};
+
+    for (const auto& key : requiredKeys)
+    {
+        if (!jsonData.contains(key))
+        {
+            LOG(DEBUG) << "Invalid json reading, please fill all the required fields <DEVICE_KEY>, <DEVICE_PQSSWORD>, "
+                          "<PLATFORM_HOST>, <CA_CERT_PATH>, <FILE_MANAGEMENT_LOCATION>";
+            return false;
+        }
+    }
+
+    LOG(DEBUG) << "Valid json document";
+    return true;
 }
 
 class DeviceDataChangeHandler : public wolkabout::connect::FeedUpdateHandler
@@ -147,13 +174,50 @@ double getMaximumTemperature(std::vector<double> temperatures)
     return maxValue;
 }
 
-int main(int /* argc */, char** /* argv */)
+int main(int argc, char** argv)
 {
     // This is the logger setup. Here you can set up the level of logging you would like enabled.
-    // TODO ask Lazar to pass string as wolkabout::LogLevel::LOG_LEVEL defined as macro
     wolkabout::Logger::init(LOG_LEVEL, LOG_TYPE, FILE_PATH);
+    // check if the command line passes two arguments (./ELabTest and <PATH_TO_JSON_FILE>)
+    if (argc != 2)
+    {
+        LOG(DEBUG) << "Please run with ./ELabTest <PATH_TO_JSON_FILE>";
+        std::cout << "Please run with ./ELabTest <PATH_TO_JSON_FILE>" << std::endl;
+        return -1;
+    }
+    // Command line argument
+    pathToJsonFile = argv[1];
 
-    // Here we create the device that we are presenting as on the platform.
+    if (pathToJsonFile == "")
+    {
+        LOG(DEBUG) << "No path to json file provided, user inputed empty string";
+        std::cout << "No path to json file provided, user inputed empty string";
+        return -1;
+    }
+
+    // Json file to store the device data parameters (DEVICE_KEY, DEVICE_PASSWORD etc.)
+    std::ifstream jsonFileStream(pathToJsonFile);
+    if (!jsonFileStream.is_open())
+    {
+        throw std::runtime_error("Unable to open file: " + pathToJsonFile);
+    }
+    nlohmann::json jsonData;
+    jsonFileStream >> jsonData;
+    if (isValidJson(jsonData))
+    {
+        DEVICE_KEY = jsonData.at("DEVICE_KEY").get<std::string>();
+        DEVICE_PASSWORD = jsonData.at("DEVICE_PASSWORD").get<std::string>();
+        PLATFORM_HOST = jsonData.at("PLATFORM_HOST").get<std::string>();
+        CA_CERT_PATH = jsonData.at("CA_CERT_PATH").get<std::string>();
+        FILE_MANAGEMENT_LOCATION = jsonData.at("FILE_MANAGEMENT_LOCATION").get<std::string>();
+
+        std::cout << "Device key: " << DEVICE_KEY << std::endl;
+        std::cout << "Device password: " << DEVICE_PASSWORD << std::endl;
+        std::cout << "Platform host: " << PLATFORM_HOST << std::endl;
+        std::cout << "CA cert path: " << CA_CERT_PATH << std::endl;
+        std::cout << "File management location: " << FILE_MANAGEMENT_LOCATION << std::endl;
+    }
+
     auto device = wolkabout::Device(DEVICE_KEY, DEVICE_PASSWORD, wolkabout::OutboundDataMode::PUSH);
     auto deviceInfo = DeviceData{
       {0.0},
@@ -209,6 +273,7 @@ int main(int /* argc */, char** /* argv */)
                      wolk->addReading("CPU_T_core3", temperatures[2]);
                      wolk->addReading("CPU_T_core4", temperatures[3]);
                      LOG(DEBUG) << "Published temperatures";
+                     temperatures.clear();
                  });
     // Timer for publishing in intervals to the platform and their lambda functions
     wolkabout::Timer timerIp;
