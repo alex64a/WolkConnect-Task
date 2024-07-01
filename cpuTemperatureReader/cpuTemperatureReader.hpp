@@ -13,7 +13,7 @@ namespace CpuTemperatureReader
 
 std::vector<double> readTemperatures();
 void initializeSensors();
-void cleanupSensors();
+
 }    // namespace CpuTemperatureReader
 
 #endif    // CPU_TEMPERATURE_READER_H

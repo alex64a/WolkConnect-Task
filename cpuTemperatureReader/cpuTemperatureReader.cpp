@@ -1,8 +1,20 @@
 #include "cpuTemperatureReader.hpp"
 namespace CpuTemperatureReader
 {
+
+void initializeSensors()
+{
+    // Initialize the sensors library
+    if (sensors_init(NULL) != 0)
+    {
+        std::cerr << "Failed to initialize sensors library" << std::endl;
+        exit(1);
+    }
+}
+
 std::vector<double> readTemperatures()
 {
+    initializeSensors();
     std::vector<double> temperatures;
     // Get the list of detected sensor chips
     const sensors_chip_name* chip;
@@ -45,5 +57,6 @@ std::vector<double> readTemperatures()
         std::cerr << "Not enough temperature readings found" << std::endl;
         return {};
     }
+    sensors_cleanup();
 }
 }    // namespace CpuTemperatureReader
