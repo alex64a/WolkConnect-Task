@@ -2,6 +2,6 @@
 	path = WolkSDK-Cpp
 	url = https://github.com/Wolkabout/WolkSDK-Cpp.git
 
-[submodule "nlohmann_json"]
-	path = nlohmann_json
+[submodule "json"]
+	path = json
 	url = https://github.com/nlohmann/json.git
