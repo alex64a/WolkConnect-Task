@@ -1,3 +1,2 @@
 #!/bin/bash
-systemctl enable wolkconnect-task
-systemctl start wolkconnect-task
+systemctl enable wolkconnect-task && systemctl start wolkconnect-task
