@@ -21,7 +21,7 @@
 #include "wolk/WolkSingle.h"
 #include "cpuTemperatureReader/cpuTemperatureReader.hpp"
 #include "ipAddressReader/ipAddressReader.hpp"
-#include "nlohmann_json/single_include/nlohmann/json.hpp"
+#include "json/single_include/nlohmann/json.hpp"
 #include <fstream>
 #include <chrono>
 #include <csignal>
