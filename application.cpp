@@ -43,7 +43,7 @@
 const wolkabout::LogLevel LOG_LEVEL = wolkabout::LogLevel::DEBUG;
 const std::string LOG_LEVEL_STRING = "DEBUG";
 const wolkabout::Logger::Type LOG_TYPE = wolkabout::Logger::Type::CONSOLE | wolkabout::Logger::Type::FILE;
-const std::string FILE_PATH = "/log.txt";
+const std::string FILE_PATH = "log.txt";
 const int CPU_TIMER = 30;
 const int CPU_TIMER_MAX = 60;
 const int IP_TIMER = 30;
