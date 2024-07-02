@@ -18,7 +18,7 @@ Description=Service to start the ELabTest application
 After=multi-user.target
 
 [Service]
-User=alex64a
+User=root
 Type=simple
 ExecStart=/opt/wolkconnect-task/bin/ELabTest INFO
 WorkingDirectory=/opt/wolkconnect-task/bin/
