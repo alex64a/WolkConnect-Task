@@ -18,7 +18,6 @@ Description=Service to start the ELabTest application
 After=multi-user.target
 
 [Service]
-Environment
 User=root
 Type=simple
 ExecStart=/opt/wolkconnect-task/bin/ELabTest /WolkConnect-Task/deviceSettings.json
