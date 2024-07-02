@@ -12,17 +12,16 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-ENV JSON_FILENAME=deviceSettings.json
-ENV PATH_TO_JSON=/WolkConnect-Task/$JSON_FILENAME
 
 [Unit]
 Description=Service to start the ELabTest application
 After=multi-user.target
 
 [Service]
+Environment
 User=root
 Type=simple
-ExecStart=/opt/wolkconnect-task/bin/ELabTest $PATH_TO_JSON
+ExecStart=/opt/wolkconnect-task/bin/ELabTest /WolkConnect-Task/deviceSettings.json
 WorkingDirectory=/opt/wolkconnect-task/bin/
 Restart=always
 RestartSec=5
