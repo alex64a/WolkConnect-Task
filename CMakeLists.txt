@@ -124,7 +124,7 @@ option(BUILD_AWS_LOG_UPLOADER "" OFF)
 #subdirectory for WolkSDK
 add_subdirectory(WolkSDK-Cpp)
 #subdirectory for JSON 
-add_subdirectory(nlohmann_json)
+add_subdirectory(json)
 #subdirectory for cpu temperature readings
 add_subdirectory(cpuTemperatureReader)
 #subdirectory for ip address reader
